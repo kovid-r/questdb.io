@@ -4,22 +4,18 @@ author: Kovid Rathee
 author_title: Guest post
 author_url: https://kovidrathee.medium.com/
 author_image_url: https://miro.medium.com/fit/c/96/96/0*_CwYR2OmNap47tQO.jpg
-description:
-  SQL extensions for time series data in QuestDB part II:
+description: SQL extensions for time series data in QuestDB part II.
+keywords:  
   - tutorial
   - sql
   - questdb
   - timeseries
-
-image: /img/blog/2022-08-05/banner.png
 tags: [tutorial, sql, timeseries, questdb]
 ---
 
 This post comes from [Kovid Rathee](https://towardsdatascience.com/questdb-vs-timescaledb-38160a361c0e?sk=42d1c037a6dfc3786e11eb9d9f5af2ad), who, following up on the [first tutorial](https://towardsdatascience.com/sql-extensions-for-time-series-data-in-questdb-f6b53acf3213), has put together another tutorial on SQL extensions for time series data in QuestDB.
 
-<!--truncate-->
-
-# Draft / SQL extensions for time series data in QuestDB part II
+#  SQL extensions for time series data in QuestDB part II
 
 This tutorial follows up on the one where we introduced [SQL extensions in QuestDB](https://towardsdatascience.com/sql-extensions-for-time-series-data-in-questdb-f6b53acf3213) that make time-series analysis easier. In this tutorial, you will learn in detail about the [`SAMPLE BY` extension](https://questdb.io/docs/reference/sql/sample-by/) in QuestDB, which will enable you to work with time-series data efficiently because of its simplicity and flexibility.
 
@@ -29,7 +25,7 @@ This tutorial assumes you have an up-and-running QuestDB instance ready for use.
 
 ## Setup
 
-### Import Sample Data
+### Import sample data
 
 Similar to the previous tutorial, we'll use [the NYC taxi riders data for February 2018](https://s3-eu-west-1.amazonaws.com/questdb.io/datasets/grafana_tutorial_dataset.tar.gz). You can use the following script utilizing the [HTTP REST API](https://questdb.io/docs/guides/importing-data-rest/) to upload data into QuestDB:
 
@@ -38,25 +34,25 @@ curl https://s3-eu-west-1.amazonaws.com/questdb.io/datasets/grafana_tutorial_dat
 tar -xvf grafana_data.tar.gz
 
 curl -F data=@taxi_trips_feb_2018.csv http://localhost:9000/imp
-curl -F data=@weather.csv http://localhost:9000/imp  
+curl -F data=@weather.csv http://localhost:9000/imp
 ```
- 
+
 Alternatively, you can utilize [the import functionality in the QuestDB console](https://questdb.io/docs/develop/web-console/#import), as shown in the image below:
 
 ![](https://i.imgur.com/EWniDQq.png)
 
 For [importing large CSV files into partitioned tables](https://questdb.io/docs/guides/importing-data/), QuestDB recommends using the `COPY` command. Thie method is especially useful when you are trying to migrate data from another database into QuestDB.
 
-### Create an Ordered Timestamp Column
+### Create an ordered timestamp column
 
 QuestDB mandates the use of an ordered timestamp column, so you'll have to cast the `pickup_datetime` column to `TIMESTAMP` in a new table called `taxi_trips` with the script below:
 
 ```sql
 CREATE TABLE taxi_trips AS (
-  SELECT * 
-    FROM 'taxi_trips_feb_2018.csv' 
+  SELECT *
+    FROM 'taxi_trips_feb_2018.csv'
    ORDER BY pickup_datetime
-) TIMESTAMP(pickup_datetime) 
+) TIMESTAMP(pickup_datetime)
 PARTITION BY MONTH;
 ```
 
@@ -66,13 +62,13 @@ If it all goes well, you should see the following data after running a `SELECT *
 
 ![](https://i.imgur.com/QwI0YVe.png)
 
-## Understanding the Basics of `SAMPLE BY`
+## Understanding the basics of `SAMPLE BY`
 
 The `SAMPLE BY` extension allows you to create groups and buckets of data based on time ranges. This is especially valuable for time-series data as you can calculate frequently used aggregates with extreme simplicity. `SAMPLE BY` offers you the ability to summarize or aggregate data from very fine to very coarse [units of time](https://questdb.io/docs/reference/sql/sample-by/#sample-units), i.e., from microseconds to months and everything in between, i.e., millisecond, second, minute, hour, and day. You can derive other units of time, such as a week, fortnight, and year from the ones provided out of the box.
 
 Let's look at some examples to understand how to use `SAMPLE BY` in different scenarios.
 
-### Hourly Count of Trips
+### Hourly count of trips
 
 You can use the `SAMPLE BY` keyword with the [sample unit](https://questdb.io/docs/reference/sql/sample-by/#sample-units) of `h` to get an hour-by-hour count of trips for the whole duration of the data set. Running the following query, you'll get results in the console:
 
@@ -87,7 +83,7 @@ There are two ways you can read your data in the QuestDB console: using the grid
 
 ![](https://i.imgur.com/JHBiCI3.png)
 
-### Three-Hourly Holistic Summary of Trips
+### Three-hourly holistic summary of trips
 
 The `SAMPLE BY` extension allows you to group data by any arbitrary number of sample units. In the following example, you'll see that the query is calculating a three-hourly summary of trips with multiple aggregate functions:
 
@@ -103,10 +99,10 @@ SELECT pickup_datetime,
  SAMPLE BY 3h;
  ```
 You can view the output of the query in the following grid on the QuestDB console:
- 
+
  ![](https://i.imgur.com/NG2sDIV.png)
 
-### Weekly Summary of Trips
+### Weekly summary of trips
 
 As mentioned earlier in the tutorial, although there's no sample unit for a week, a fortnight, or a year, you can derive them simply by utilizing the built-in sample units. If you want to sample the data by a week, use `7d` as the sampling time, as shown in the query below:
 
@@ -125,7 +121,7 @@ SELECT pickup_datetime,
 
 ![](https://i.imgur.com/f5lVlQL.png)
 
-## Dealing with Missing Data
+## Dealing with missing data
 
 If you've worked a fair bit with data, you already know that data isn't always in a pristine state. One of the most common issues, especially with time-series data, is discontinuity, i.e., scenarios where data is missing for specific time periods. You can quickly identify and deal with missing data using the advanced functionality of the `SAMPLE BY` extension.
 
@@ -147,11 +143,21 @@ SELECT pickup_datetime,
 
 In the example above, we've used an inline `WHERE` clause to emulate missing clause with the help of the `NOT BETWEEN` keyword. Alternatively, you can create a separate table with missing trips using the same idea, as shown below:
 
-```sql 
+```sql
 CREATE TABLE 'taxi_trips_missing' AS (
 SELECT * FROM 'taxi_trips'
-WHERE pickup_datetime NOT BETWEEN '2018-02-01T04:00:00' 
+WHERE pickup_datetime 
+  NOT BETWEEN '2018-02-01T04:00:00'
   AND '2018-02-01T04:59:59');
+```
+
+Ideally, you should use `DROP PARTITION` to emulate missing data, but because the data is partitioned by `MONTH`, you cannot run the following query:
+
+```sql
+ALTER TABLE 'taxi_trips'
+ DROP PARTITION
+WHERE pickup_datetime < ('2018-02-01T04:59:59') 
+  AND pickup_datetime > ('2018-02-01T04:00:00');
 ```
 
 The [`FILL`](https://questdb.io/docs/reference/sql/sample-by/#fill-options) keyword demands a `fillOption` from the following:
@@ -168,9 +174,9 @@ Here's another example of hardcoding values using the FILL(x) `fillOption`:
 
 ![](https://i.imgur.com/gN0LO6g.png)
 
-## Working with Timezones and Offsets
+## Working with timezones and offsets
 
-The `SAMPLE BY` extension also enables you to work change timezones and add or subtract offsets from your timestamp columns to adjust for any issues you might encounter when dealing with different source systems, especially in other geographic areas. It is important to note that, by default, QuestDB aligns its [sample calculation](https://questdb.io/docs/reference/sql/sample-by/#sample-calculation) based on the `FIRST OBSERVATION`, as shown in the example below:
+The `SAMPLE BY` extension also enables you to change timezones and add or subtract offsets from your timestamp columns to adjust for any issues you might encounter when dealing with different source systems, especially in other geographic areas. It is important to note that, by default, QuestDB aligns its [sample calculation](https://questdb.io/docs/reference/sql/sample-by/#sample-calculation) based on the `FIRST OBSERVATION`, as shown in the example below:
 
 ```sql
 SELECT pickup_datetime,
@@ -191,7 +197,7 @@ Note now the `1d` sample calculation starts at `13:35:52` and ends at `13:35:51`
 
 Let's look at the other two alignment methods now.
 
-### Aligning Sample Calculation to Another Timezone
+### Aligning sample calculation to another timezone
 
 When moving data from one system to another or via a complex pipeline, you can encounter issues with time zones. For the sake of demonstration, let's assume that you've identified that the data set you've loaded into the database is not for New York City but for Melbourne, Australia. These two cities are far apart and are in very different time zones.
 
@@ -213,7 +219,7 @@ SELECT pickup_datetime,
 
 ![](https://i.imgur.com/szB7CMD.png)
 
-### Aligning Sample Calculation with Offsets
+### Aligning sample calculation with offsets
 
 Similar to the previous example, you can also align your sample calculation by [offsetting the designated timestamp](https://questdb.io/docs/reference/sql/sample-by/#align-to-calendar-with-offset) column manually by any `hh:mm` value between -23:59 to 23:59. In the following example, we're offsetting the sample calculation by -5:30, i.e., negative five hours and thirty minutes:
 
